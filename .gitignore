@@ -1,0 +1,28 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.db
+
+# Environment files (keep the .example ones)
+.env
+backend/.env
+web/.env
+
+# Node
+node_modules/
+web/dist/
+
+# Flutter
+mobile/.dart_tool/
+mobile/build/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Database backups (may contain real voter data)
+evoting.sql
+*.sql

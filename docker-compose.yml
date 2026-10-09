@@ -1,0 +1,66 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: evoting
+      MYSQL_USER: evoting
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db_data:/var/lib/mysql
+      # To restore a backup, put evoting.sql in the project root and uncomment:
+      # - ./evoting.sql:/docker-entrypoint-initdb.d/evoting.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api_web:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: mysql+pymysql://evoting:${MYSQL_PASSWORD}@db:3306/evoting
+    # seed.py is safe to re-run: it creates tables and the admin only if missing.
+    # Set SEED_ARGS=--demo in .env to also load sample candidates and voters.
+    command: sh -c "python seed.py ${SEED_ARGS:-} && uvicorn api_web.main:app --host 0.0.0.0 --port 8001"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/api/web/config')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  # Only needed for the Flutter mobile app:  docker compose --profile mobile up -d
+  api_mobile:
+    profiles: ["mobile"]
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: mysql+pymysql://evoting:${MYSQL_PASSWORD}@db:3306/evoting
+    command: uvicorn api_mobile.main:app --host 0.0.0.0 --port 8002
+    depends_on:
+      api_web:
+        condition: service_healthy
+    ports:
+      - "8002:8002"
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    depends_on:
+      - api_web
+    ports:
+      - "8080:80"
+
+volumes:
+  db_data:

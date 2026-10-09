@@ -1,0 +1,22 @@
+:root { --brand: #0b6e4f; --ink: #17202a; --surface: #f3f5f6; }
+body { font-family: "IBM Plex Sans", system-ui, sans-serif; background: var(--surface); color: var(--ink); }
+.btn-primary { --bs-btn-bg: var(--brand); --bs-btn-border-color: var(--brand); --bs-btn-hover-bg: var(--brand);
+  --bs-btn-hover-border-color: var(--brand); --bs-btn-active-bg: var(--brand); --bs-btn-active-border-color: var(--brand);
+  --bs-btn-disabled-bg: var(--brand); --bs-btn-disabled-border-color: var(--brand); filter: none; }
+.btn-primary:hover { filter: brightness(.92); }
+.btn-outline-primary { --bs-btn-color: var(--brand); --bs-btn-border-color: var(--brand); --bs-btn-hover-bg: var(--brand);
+  --bs-btn-hover-border-color: var(--brand); --bs-btn-active-bg: var(--brand); }
+.text-brand { color: var(--brand); }
+.bg-brand { background: var(--brand); color: #fff; }
+.form-check-input:checked { background-color: var(--brand); border-color: var(--brand); }
+.form-control:focus, .form-select:focus { border-color: var(--brand); box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--brand) 25%, transparent); }
+.card { border: 1px solid #dde2e6; border-radius: .5rem; }
+.candidate { display: flex; gap: .85rem; align-items: center; padding: .85rem 1rem; border: 1px solid #dde2e6;
+  border-radius: .5rem; cursor: pointer; background: #fff; }
+.candidate:has(input:checked) { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); background: color-mix(in srgb, var(--brand) 6%, #fff); }
+.avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: #e4e8eb; display: grid; place-items: center; font-weight: 600; color: #5b6770; flex: none; }
+.stat { font-size: 2rem; font-weight: 600; line-height: 1.1; }
+.leader-row { display: flex; justify-content: space-between; gap: 1rem; }
+.live-dot { width: .6rem; height: .6rem; border-radius: 50%; background: #1f9d55; display: inline-block; }
+@media (prefers-reduced-motion: no-preference) { .live-dot { animation: pulse 2s infinite; } }
+@keyframes pulse { 50% { opacity: .3; } }
