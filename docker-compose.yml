@@ -24,9 +24,12 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: mysql+pymysql://evoting:${MYSQL_PASSWORD}@db:3306/evoting
+      TRUST_PROXY: "true"   # voter IP comes from nginx's X-Forwarded-For
     # seed.py is safe to re-run: it creates tables and the admin only if missing.
     # Set SEED_ARGS=--demo in .env to also load sample candidates and voters.
     command: sh -c "python seed.py ${SEED_ARGS:-} && uvicorn api_web.main:app --host 0.0.0.0 --port 8001"
+    volumes:
+      - uploads:/app/uploads      # school logo and candidate photos
     depends_on:
       db:
         condition: service_healthy
@@ -48,6 +51,8 @@ services:
     environment:
       DATABASE_URL: mysql+pymysql://evoting:${MYSQL_PASSWORD}@db:3306/evoting
     command: uvicorn api_mobile.main:app --host 0.0.0.0 --port 8002
+    volumes:
+      - uploads:/app/uploads:ro   # same images, read-only
     depends_on:
       api_web:
         condition: service_healthy
@@ -64,3 +69,4 @@ services:
 
 volumes:
   db_data:
+  uploads:

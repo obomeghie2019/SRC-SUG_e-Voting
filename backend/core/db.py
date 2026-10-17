@@ -19,5 +19,6 @@ def get_db():
 
 
 def init_db():
-    from . import models  # noqa: F401  (registers tables)
-    Base.metadata.create_all(engine)
+    from . import migrate, models  # noqa: F401  (registers tables)
+    Base.metadata.create_all(engine)   # creates any missing tables (auth_sessions, audit_log, ...)
+    migrate.apply(engine)              # adds new columns to tables that already existed

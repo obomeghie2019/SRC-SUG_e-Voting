@@ -20,3 +20,15 @@ body { font-family: "IBM Plex Sans", system-ui, sans-serif; background: var(--su
 .live-dot { width: .6rem; height: .6rem; border-radius: 50%; background: #1f9d55; display: inline-block; }
 @media (prefers-reduced-motion: no-preference) { .live-dot { animation: pulse 2s infinite; } }
 @keyframes pulse { 50% { opacity: .3; } }
+
+.print-only { display: none; }
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block; }
+  body { background: #fff; font-size: 10px; }
+  main { padding: 0 !important; }
+  .card { border: 0; }
+  table { font-size: 9px; }
+  tr { break-inside: avoid; }
+  @page { size: A4 landscape; margin: 10mm; }
+}

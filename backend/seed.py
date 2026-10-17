@@ -1,6 +1,7 @@
 """Creates tables, the first admin, and optional demo data.
    python seed.py          -> tables + admin only
-   python seed.py --demo   -> also sample positions, candidates and 5 voters (PINs are printed)"""
+   python seed.py --demo   -> also sample positions, candidates and 5 voters with demo email/phone
+Voters sign in with their matric number and a one-time code sent to the email/phone stored below."""
 import os
 import sys
 
@@ -29,9 +30,11 @@ if "--demo" in sys.argv and not db.query(Position).count():
         p.candidates = [Candidate(full_name=n, department="Computer Science", level="ND2") for n in names]
         db.add(p)
     db.commit()
-    rows = [{"matric_no": f"DEMO/00{i}", "full_name": f"Demo Voter {i}", "department": d, "level": l}
+    rows = [{"matric_no": f"DEMO/00{i}", "full_name": f"Demo Voter {i}", "email": f"demo{i}@example.com",
+             "phone": f"0801000000{i}", "department": d, "level": l}
             for i, (d, l) in enumerate([("Computer Science", "ND1"), ("Computer Science", "ND2"),
                                         ("Electrical Eng.", "HND1"), ("Accountancy", "ND2"),
                                         ("Accountancy", "HND2")], start=1)]
-    for r in services.import_voters(db, rows)["created"]:
-        print(f"  voter {r['matric_no']}  PIN {r['pin']}")
+    res = services.import_voters(db, rows)
+    print(f"  {len(res['created'])} demo voters: DEMO/001 .. DEMO/005 (email demoN@example.com, phone 0801000000N)")
+    print("  Set OTP_DEV_MODE=true in .env to see their one-time codes in the API console.")

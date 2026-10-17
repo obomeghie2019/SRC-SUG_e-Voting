@@ -17,7 +17,7 @@ class VotingApp extends StatefulWidget {
 }
 
 class _VotingAppState extends State<VotingApp> {
-  Map<String, dynamic> cfg = {'institution_name': '', 'election_title': 'e-Voting', 'election_status': 'draft', 'theme_color': '#0b6e4f'};
+  Map<String, dynamic> cfg = {'institution_name': '', 'election_title': 'e-Voting', 'election_status': 'draft', 'theme_color': '#0b6e4f', 'location_required': true};
   bool? signedIn;
 
   @override

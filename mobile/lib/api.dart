@@ -17,6 +17,12 @@ class ApiException implements Exception {
 }
 
 class Api {
+  /// Uploaded images are stored as "/uploads/<name>"; prefix them with this app's API base. Full URLs pass through.
+  static String? assetUrl(String? u) {
+    if (u == null || u.isEmpty) return null;
+    return u.startsWith('/uploads/') ? '$apiBase$u' : u;
+  }
+
   static const _store = FlutterSecureStorage();
   static const _tokenKey = 'jwt';
   static const _deviceKey = 'device_id';
@@ -61,10 +67,25 @@ class Api {
   static Future<Map<String, dynamic>> config() => _guard(() async =>
       _handle(await http.get(Uri.parse('$apiBase/config'), headers: await _headers())));
 
-  static Future<void> login(String matricNo, String pin) => _guard(() async {
-        final r = await http.post(Uri.parse('$apiBase/auth/login'),
+  /// Step 1: matric number + location. Returns {session_id, channels:[{channel, masked}], otp_ttl_minutes}.
+  static Future<Map<String, dynamic>> lookup(String matricNo, Map<String, double> where) => _guard(() async {
+        final r = await http.post(Uri.parse('$apiBase/auth/lookup'),
             headers: await _headers(),
-            body: jsonEncode({'matric_no': matricNo, 'password': pin, 'device_id': await _deviceId(), 'device_name': 'mobile'}));
+            body: jsonEncode({'matric_no': matricNo, 'device_id': await _deviceId(), ...where}));
+        return _handle(r) as Map<String, dynamic>;
+      });
+
+  /// Step 2: send the one-time code by 'email' or 'sms' to the contact already on record.
+  static Future<Map<String, dynamic>> sendCode(String sessionId, String channel) => _guard(() async {
+        final r = await http.post(Uri.parse('$apiBase/auth/otp/send'),
+            headers: await _headers(), body: jsonEncode({'session_id': sessionId, 'channel': channel}));
+        return _handle(r) as Map<String, dynamic>;
+      });
+
+  /// Step 3: check the code against this session. On success the voting token is stored securely.
+  static Future<void> verifyCode(String sessionId, String otp, Map<String, double>? where) => _guard(() async {
+        final r = await http.post(Uri.parse('$apiBase/auth/otp/verify'),
+            headers: await _headers(), body: jsonEncode({'session_id': sessionId, 'otp': otp, ...?where}));
         final data = _handle(r) as Map<String, dynamic>;
         await _store.write(key: _tokenKey, value: data['token'] as String);
       });
@@ -75,8 +96,8 @@ class Api {
         return _handle(r) as Map<String, dynamic>;
       });
 
-  static Future<String> vote(Map<int, int> selections) => _guard(() async {
-        final body = jsonEncode({'selections': selections.map((k, v) => MapEntry(k.toString(), v))});
+  static Future<String> vote(Map<int, int> selections, [Map<String, double>? where]) => _guard(() async {
+        final body = jsonEncode({'selections': selections.map((k, v) => MapEntry(k.toString(), v)), ...?where});
         final r = await http.post(Uri.parse('$apiBase/vote'), headers: await _headers(auth: true), body: body);
         return (_handle(r) as Map<String, dynamic>)['receipt_code'] as String;
       });

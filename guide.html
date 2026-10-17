@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SUG/SRC e-Voting System: Setup Guide</title>
+<style>
+  :root{--bg:#f7f9f8;--card:#fff;--text:#1d2a26;--muted:#5b6b66;--accent:#0b6e4f;--code:#0f1f1a;--codetext:#d7f5e8;--line:#dfe6e3}
+  @media (prefers-color-scheme:dark){:root{--bg:#101615;--card:#18211f;--text:#e6efec;--muted:#9fb1ab;--accent:#3ecf9a;--code:#0a0f0e;--codetext:#d7f5e8;--line:#27332f}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  header{background:var(--accent);color:#fff;padding:2rem 1rem}
+  header h1{margin:0 auto;max-width:880px;font-size:1.7rem}
+  header p{margin:.4rem auto 0;max-width:880px;opacity:.9}
+  main{max-width:880px;margin:0 auto;padding:1rem}
+  nav{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0}
+  nav a{padding:.35rem .8rem;border:1px solid var(--line);border-radius:999px;color:var(--accent);text-decoration:none;background:var(--card);font-size:.9rem}
+  section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1.2rem 1.4rem;margin:1rem 0}
+  h2{margin:0 0 .6rem;font-size:1.25rem;color:var(--accent)}
+  h3{margin:1.1rem 0 .3rem;font-size:1rem}
+  pre{background:var(--code);color:var(--codetext);padding:.8rem 1rem;border-radius:8px;overflow-x:auto;font-size:.88rem;margin:.5rem 0}
+  code{font-family:ui-monospace,Consolas,monospace}
+  p code,li code,td code{background:rgba(11,110,79,.12);padding:.1rem .35rem;border-radius:4px;font-size:.88em}
+  table{width:100%;border-collapse:collapse;font-size:.92rem;display:block;overflow-x:auto}
+  th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+  .note{border-left:4px solid var(--accent);padding:.5rem .8rem;background:rgba(11,110,79,.08);border-radius:0 6px 6px 0;margin:.7rem 0;font-size:.93rem}
+  .warn{border-left-color:#d9822b;background:rgba(217,130,43,.1)}
+  footer{text-align:center;color:var(--muted);padding:1.5rem 1rem;font-size:.85rem}
+</style>
+</head>
+<body>
+<header>
+  <h1>SUG/SRC e-Voting System</h1>
+  <p>Setup guide: run it locally, run it with Docker, restore the database, and push to GitHub.</p>
+</header>
+<main>
+<nav>
+  <a href="#overview">Overview</a><a href="#local">Run locally</a><a href="#docker">Docker</a>
+  <a href="#sql">Restore SQL</a><a href="#git">Git &amp; GitHub</a><a href="#fix">Troubleshooting</a>
+</nav>
+
+<section id="overview">
+  <h2>Overview</h2>
+  <table>
+    <tr><th>Part</th><th>Folder</th><th>Port</th></tr>
+    <tr><td>Web API (voters + admin)</td><td><code>backend/api_web</code></td><td>8001</td></tr>
+    <tr><td>Mobile API (voters)</td><td><code>backend/api_mobile</code></td><td>8002</td></tr>
+    <tr><td>Web app (React)</td><td><code>web/</code></td><td>5173 (dev), 8080 (Docker)</td></tr>
+    <tr><td>Mobile app (Flutter)</td><td><code>mobile/</code></td><td>n/a</td></tr>
+  </table>
+  <p>Everything shares one MySQL (or PostgreSQL) database named <code>evoting</code>. See <code>README.md</code> for full details.</p>
+</section>
+
+<section id="local">
+  <h2>1. Run locally</h2>
+  <p>Requirements: Python 3.11+, Node.js 18+, MySQL 8 (or XAMPP/WAMP).</p>
+  <h3>Database</h3>
+  <pre><code>CREATE DATABASE evoting CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;</code></pre>
+  <h3>Backend</h3>
+  <pre><code>cd backend
+python -m venv .venv
+source .venv/Scripts/activate      # Git Bash. macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+pip install cryptography
+cp .env.example .env
+python seed.py --demo              # demo voters DEMO/001 ... DEMO/005
+uvicorn api_web.main:app --port 8001 --reload</code></pre>
+  <p>Set this in <code>backend/.env</code> (root user, no password):</p>
+  <pre><code>DATABASE_URL=mysql+pymysql://root:@localhost:3306/evoting
+JWT_SECRET=a-long-random-string
+ADMIN_PASSWORD=ChooseAStrongPassword
+OTP_DEV_MODE=true                  # prints one-time codes in this console (testing only)</code></pre>
+  <h3>Web app (new terminal)</h3>
+  <pre><code>cd web
+npm install
+npm run dev</code></pre>
+  <p>Voters: <code>http://localhost:5173/</code> &nbsp; Admin: <code>http://localhost:5173/admin/login</code></p>
+  <p>Voter flow: allow location, enter <code>DEMO/001</code>, choose email or SMS, then type the code shown in the API console (<code>[DEV OTP] ...</code>).</p>
+  <div class="note">Voters cannot log in until the admin clicks <strong>Open voting</strong> in Settings.</div>
+</section>
+
+<section id="docker">
+  <h2>2. Run with Docker</h2>
+  <pre><code>cp .env.example .env               # then edit passwords and JWT_SECRET
+docker compose up -d --build
+docker compose logs -f api_web     # shows one-time codes while OTP_DEV_MODE=true</code></pre>
+  <p>Open <code>http://localhost:8080/</code> (voters) or <code>http://localhost:8080/admin/login</code> (admin). Add <code>--profile mobile</code> to also start the mobile API.</p>
+  <pre><code>docker compose down        # stop (data kept)
+docker compose down -v     # stop and delete the database</code></pre>
+</section>
+
+<section id="sql">
+  <h2>3. Restore from <code>evoting.sql</code></h2>
+  <pre><code>mysql -u root evoting &lt; evoting.sql</code></pre>
+  <p>Or use phpMyAdmin: select <code>evoting</code>, then Import, then choose <code>evoting.sql</code>. For Docker, put the file in the project root, uncomment the <code>evoting.sql</code> volume line in <code>docker-compose.yml</code>, then run <code>docker compose down -v</code> and <code>docker compose up -d --build</code>.</p>
+  <div class="note warn">The dump may contain real voter data. It is listed in <code>.gitignore</code>, so it will not be pushed to GitHub.</div>
+</section>
+
+<section id="git">
+  <h2>4. Git global config and push to GitHub</h2>
+  <h3>One-time global configuration (per computer)</h3>
+  <pre><code>git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+git config --global init.defaultBranch main
+git config --global core.autocrlf true      # Windows only
+git config --global --list                  # verify</code></pre>
+  <h3>Create the repository on GitHub</h3>
+  <p>On github.com choose <strong>New repository</strong>, name it (for example <code>evoting</code>), keep it <strong>Private</strong>, and do <strong>not</strong> add a README, .gitignore or licence (the project already has them).</p>
+  <h3>Push all files</h3>
+  <p>Run these in the project root, the folder that contains <code>backend</code>, <code>web</code>, <code>mobile</code> and <code>README.md</code>:</p>
+  <pre><code>git init                       # skip if the folder is already a Git repo
+git add .
+git status                     # check: .env and evoting.sql must NOT be listed
+git commit -m "Initial commit: SUG/SRC e-Voting System"
+git branch -M main
+git remote add origin https://github.com/YOUR-USERNAME/evoting.git
+git push -u origin main</code></pre>
+  <p>If <code>git remote add</code> says the remote already exists, use <code>git remote set-url origin https://github.com/YOUR-USERNAME/evoting.git</code>.</p>
+  <div class="note">GitHub does not accept account passwords for pushes. A browser sign-in window opens through Git Credential Manager, or use a personal access token (GitHub: Settings, Developer settings, Personal access tokens) as the password.</div>
+  <div class="note warn">If <code>.env</code> or <code>evoting.sql</code> appears in <code>git status</code>, stop. Run <code>git rm --cached .env</code> (or the file name), confirm <code>.gitignore</code> is present, and commit again. A secret that was pushed must be treated as leaked: change the passwords and <code>JWT_SECRET</code>.</div>
+  <h3>Later updates</h3>
+  <pre><code>git add .
+git commit -m "Describe your change"
+git push</code></pre>
+</section>
+
+<section id="fix">
+  <h2>Troubleshooting</h2>
+  <table>
+    <tr><th>Problem</th><th>Fix</th></tr>
+    <tr><td><code>.venvScriptsactivate: command not found</code></td><td>Git Bash needs forward slashes: <code>source .venv/Scripts/activate</code></td></tr>
+    <tr><td><code>No module named 'sqlalchemy'</code></td><td>Activate the venv, then <code>pip install -r requirements.txt</code></td></tr>
+    <tr><td><code>uvicorn: command not found</code></td><td><code>python -m uvicorn api_web.main:app --port 8001 --reload</code></td></tr>
+    <tr><td>Cannot connect to MySQL</td><td>Start MySQL; check <code>DATABASE_URL</code> and that the <code>evoting</code> database exists</td></tr>
+    <tr><td>Voters cannot log in</td><td>Open voting from admin Settings</td></tr>
+    <tr><td><code>git push</code> rejected</td><td>Remote has files you lack: <code>git pull origin main --rebase</code>, then push again</td></tr>
+  </table>
+</section>
+</main>
+<footer>SUG/SRC e-Voting System. Before real use: enable HTTPS, set a strong JWT_SECRET, add login rate limiting, and run a dry run.</footer>
+</body>
+</html>

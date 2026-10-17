@@ -1,21 +1,22 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api, { errMsg } from "../api";
+import api, { assetUrl, errMsg } from "../api";
 import { useConfig } from "../App.jsx";
+import { getPosition } from "../lib/geo";
 import Brand from "./Brand.jsx";
 
 const initials = (n) => n.split(" ").map((w) => w[0]).slice(0, 2).join("");
 
 export default function Ballot() {
   const nav = useNavigate();
-  const { election_status, reload } = useConfig();
+  const { election_status, reload, location_required } = useConfig();
   const [ballot, setBallot] = useState(null);
   const [sel, setSel] = useState({});
   const [err, setErr] = useState("");
   const [receipt, setReceipt] = useState("");
   const [confirming, setConfirming] = useState(false);
 
-  const logout = () => { sessionStorage.removeItem("voter_token"); nav("/"); };
+  const logout = () => { sessionStorage.removeItem("voter_token"); sessionStorage.removeItem("voter_name"); nav("/"); };
 
   useEffect(() => {
     reload();
@@ -28,7 +29,10 @@ export default function Ballot() {
   async function submit() {
     setErr("");
     try {
-      const { data } = await api.post("/vote", { selections: sel });
+      let where = {};
+      try { where = await getPosition(); }   // fresh position at the moment of voting (recorded with the receipt)
+      catch (le) { if (location_required) { setErr(le.message); setConfirming(false); return; } }
+      const { data } = await api.post("/vote", { selections: sel, ...where });
       setReceipt(data.receipt_code); setConfirming(false);
     } catch (e) { setErr(errMsg(e)); setConfirming(false); }
   }
@@ -69,7 +73,7 @@ export default function Ballot() {
                 <label key={c.id} className="candidate">
                   <input type="radio" className="form-check-input m-0" name={`p${p.id}`} checked={sel[p.id] === c.id}
                     onChange={() => setSel({ ...sel, [p.id]: c.id })} />
-                  {c.photo_url ? <img className="avatar" src={c.photo_url} alt="" /> : <div className="avatar">{initials(c.full_name)}</div>}
+                  {c.photo_url ? <img className="avatar" src={assetUrl(c.photo_url)} alt="" /> : <div className="avatar">{initials(c.full_name)}</div>}
                   <div>
                     <div className="fw-medium">{c.full_name}</div>
                     <div className="small text-secondary">{[c.department, c.level].filter(Boolean).join(", ")}</div>

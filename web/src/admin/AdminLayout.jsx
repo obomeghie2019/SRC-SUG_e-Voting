@@ -5,7 +5,7 @@ import { useConfig } from "../App.jsx";
 
 const links = [
   ["monitor", "Live monitor"], ["analytics", "Analytics"], ["positions", "Positions & candidates"],
-  ["voters", "Voters"], ["settings", "Settings"],
+  ["voters", "Voters"], ["forensics", "Forensic report"], ["delivery", "Email & SMS"], ["settings", "Settings"],
 ];
 
 export default function AdminLayout() {
@@ -28,7 +28,7 @@ export default function AdminLayout() {
 
   return (
     <>
-      <nav className="navbar navbar-expand-lg bg-white border-bottom">
+      <nav className="navbar navbar-expand-lg bg-white border-bottom no-print">
         <div className="container-fluid px-4">
           <span className="navbar-brand fw-semibold">{institution_name || "Admin"} <span className={`badge text-bg-${badge} ms-2 fs-6 fw-normal`}>{election_status}</span></span>
           <div className="d-flex flex-wrap gap-1">

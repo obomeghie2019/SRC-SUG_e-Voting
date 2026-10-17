@@ -18,9 +18,10 @@ def verify_pw(password: str, hashed: str) -> bool:
         return False
 
 
-def make_token(sub: int, role: str, aud: str, minutes: int) -> str:
+def make_token(sub: int, role: str, aud: str, minutes: int, extra: dict | None = None) -> str:
     now = dt.datetime.now(dt.timezone.utc)
     payload = {"sub": str(sub), "role": role, "aud": aud, "iat": now, "exp": now + dt.timedelta(minutes=minutes)}
+    payload.update(extra or {})  # e.g. {"sid": <auth session id>} binds a voter token to one OTP session
     return jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
 
 
