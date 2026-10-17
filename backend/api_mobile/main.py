@@ -1,17 +1,24 @@
 """MOBILE API  ->  /api/mobile/*   (Flutter app)
 Separate app, separate folder, separate JWT audience. Shares only core/ (database + rules).
 Run:  uvicorn api_mobile.main:app --port 8002 --reload"""
+import os
+
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from core import config, schemas, services
+from core import config, services
 from core.db import get_db, init_db
 from core.models import Voter
-from core.security import MOBILE, make_token, require
+from core.security import MOBILE, require
+from core.voter_router import build_router
 
 app = FastAPI(title="SUG/SRC e-Voting: Mobile API")
+os.makedirs(config.UPLOAD_DIR, exist_ok=True)
+# Logo and candidate photos uploaded by the admin (stored as '/uploads/<name>' in the database)
+app.mount("/api/mobile/uploads", StaticFiles(directory=config.UPLOAD_DIR), name="uploads")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])  # native apps don't need CORS
 
 
@@ -33,29 +40,14 @@ def public_config(db: Session = Depends(get_db)):
     return services.public_config(db)
 
 
-@app.post("/api/mobile/auth/login")
-def login(body: schemas.MobileVoterLogin, db: Session = Depends(get_db)):
-    v = services.authenticate_voter(db, body.matric_no, body.password)
-    if not v:
-        raise HTTPException(401, "Invalid matric number or PIN")
-    return {"token": make_token(v.id, "voter", MOBILE, config.MOBILE_JWT_MINUTES),
-            "full_name": v.full_name, "matric_no": v.matric_no}
+# voter sign-in (location -> matric -> email/SMS code), ballot and vote
+app.include_router(build_router(MOBILE, "mobile", config.VOTE_TOKEN_MINUTES), prefix="/api/mobile")
 
 
 @app.get("/api/mobile/me")
 def me(claims: dict = Depends(voter_only), db: Session = Depends(get_db)):
     v = db.get(Voter, int(claims["sub"]))
     return {"full_name": v.full_name, "matric_no": v.matric_no, "department": v.department, "level": v.level}
-
-
-@app.get("/api/mobile/ballot")
-def ballot(claims: dict = Depends(voter_only), db: Session = Depends(get_db)):
-    return services.get_ballot(db, int(claims["sub"]))
-
-
-@app.post("/api/mobile/vote")
-def vote(body: schemas.VoteIn, claims: dict = Depends(voter_only), db: Session = Depends(get_db)):
-    return {"receipt_code": services.cast_vote(db, int(claims["sub"]), body.selections, channel="mobile")}
 
 
 @app.get("/api/mobile/results")

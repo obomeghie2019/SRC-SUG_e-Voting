@@ -1,1 +1,28 @@
-*   @activist507 @obomeghie2019
+# Every pull request needs review from a code owner (when "Require review from
+# Code Owners" is enabled in branch protection).
+# With several owners on a line, an approval from any one of them is enough.
+# The last matching line wins, so keep the catch-all first.
+
+# Everything else (root files, docs, Docker, SonarQube config)
+*                          @activist507 @obomeghie2019
+
+# Backend
+/backend/                  @activist507 @obomeghie2019
+/backend/core/             @activist507 @obomeghie2019
+/backend/api_web/          @activist507 @obomeghie2019
+/backend/api_mobile/       @activist507 @obomeghie2019
+
+# Web app
+/web/                      @activist507 @obomeghie2019
+
+# Mobile app
+/mobile/                   @activist507 @obomeghie2019
+
+# CI, workflows, PR template
+/.github/                  @obomeghie2019
+
+# Deployment and project config
+/docker-compose.yml        @activist507 @obomeghie2019
+/sonar-project.properties  @obomeghie2019
+/README.md                 @activist507 @obomeghie2019
+/guide.html                @activist507 @obomeghie2019

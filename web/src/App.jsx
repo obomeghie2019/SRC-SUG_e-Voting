@@ -10,12 +10,14 @@ import Positions from "./admin/Positions.jsx";
 import Voters from "./admin/Voters.jsx";
 import Monitor from "./admin/Monitor.jsx";
 import Analytics from "./admin/Analytics.jsx";
+import Forensics from "./admin/Forensics.jsx";
+import Delivery from "./admin/Delivery.jsx";
 
 const ConfigCtx = createContext({});
 export const useConfig = () => useContext(ConfigCtx);
 
 export default function App() {
-  const [cfg, setCfg] = useState({ institution_name: "", election_title: "e-Voting", election_status: "draft", logo_url: "", theme_color: "#0b6e4f" });
+  const [cfg, setCfg] = useState({ institution_name: "", election_title: "e-Voting", election_status: "draft", logo_url: "", theme_color: "#0b6e4f", location_required: true });
   const reload = () => api.get("/config").then((r) => setCfg(r.data)).catch(() => {});
 
   useEffect(() => { reload(); }, []);
@@ -35,6 +37,8 @@ export default function App() {
           <Route path="monitor" element={<Monitor />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="positions" element={<Positions />} />
+          <Route path="forensics" element={<Forensics />} />
+          <Route path="delivery" element={<Delivery />} />
           <Route path="voters" element={<Voters />} />
           <Route path="settings" element={<Settings />} />
         </Route>

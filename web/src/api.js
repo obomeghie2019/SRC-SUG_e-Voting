@@ -15,4 +15,7 @@ export const errMsg = (e, fallback = "Something went wrong. Try again.") => {
   return typeof d === "string" ? d : fallback;
 };
 
+// Uploaded images are stored as "/uploads/<name>"; add this app's API prefix. Full http(s) URLs pass through unchanged.
+export const assetUrl = (u) => (u && u.startsWith("/uploads/") ? api.defaults.baseURL + u : u);
+
 export default api;

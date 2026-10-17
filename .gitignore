@@ -26,3 +26,6 @@ Thumbs.db
 # Database backups (may contain real voter data)
 evoting.sql
 *.sql
+
+# Uploaded logo and candidate photos
+backend/uploads/

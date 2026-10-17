@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'api.dart';
+import 'location_service.dart';
 
 class BallotScreen extends StatefulWidget {
   final Map<String, dynamic> cfg;
@@ -70,7 +71,17 @@ class _BallotScreenState extends State<BallotScreen> {
     if (ok != true) return;
     setState(() { submitting = true; error = null; });
     try {
-      final code = await Api.vote(selected);
+      // fresh position at the moment of voting; it is stored with the receipt (never with the choices)
+      Map<String, double>? where;
+      try {
+        where = await LocationService.current();
+      } on LocationException catch (e) {
+        if (widget.cfg['location_required'] != false) {
+          setState(() => error = e.message);
+          return;
+        }
+      }
+      final code = await Api.vote(selected, where);
       setState(() => receipt = code);
     } on ApiException catch (e) {
       setState(() => error = e.message);
@@ -126,6 +137,11 @@ class _BallotScreenState extends State<BallotScreen> {
                       margin: const EdgeInsets.only(bottom: 8),
                       child: RadioListTile<int>(
                         value: c['id'] as int,
+                        secondary: CircleAvatar(
+                          radius: 24,
+                          backgroundImage: Api.assetUrl(c['photo_url'] as String?) != null ? NetworkImage(Api.assetUrl(c['photo_url'] as String?)!) : null,
+                          child: Api.assetUrl(c['photo_url'] as String?) == null ? Text((c['full_name'] as String).trim().isEmpty ? '?' : (c['full_name'] as String).trim()[0]) : null,
+                        ),
                         title: Text(c['full_name'] as String),
                         subtitle: Text([c['department'], c['level']].where((e) => (e as String).isNotEmpty).join(', ') + ((c['manifesto'] as String).isNotEmpty ? '\n${c['manifesto']}' : '')),
                       ),
