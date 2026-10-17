@@ -67,7 +67,7 @@ evoting/
 ├── mobile/            Flutter app (see mobile/README.md)
 ├── docker-compose.yml
 ├── .env.example       Settings for Docker Compose
-└── evoting.sql        Optional database backup (not committed to Git)
+└── evoting.sql        Optional database backup (not committed to Git) request for it
 ```
 
 The web and mobile APIs are separate but share one database, so anything the admin changes in the dashboard (institution name, positions, candidates, election status) appears in both apps immediately.
@@ -98,7 +98,7 @@ If voting is not open, sign-in stops at step 2 with a clear message, so no SMS o
 ## 1. Clone the repository
 
 ```bash
-git clone https://github.com/<your-username>/<your-repo>.git
+git clone git pull origin main --allow-unrelated-histories --no-rebase --no-edit
 cd <your-repo>
 ```
 
