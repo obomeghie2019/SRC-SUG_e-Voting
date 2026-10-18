@@ -4,8 +4,8 @@ A secure online voting system for Student Union Government (SUG) and Students' R
 
 ## Features
 
-- **Location gate**: the web and mobile apps ask the voter to turn location ON before anything else
-- **OTP sign-in**: matric number, then a 6-digit code by **email or SMS** (the voter's choice), sent only to the contact already stored for that voter
+- **Location Gate**: the web and mobile apps ask the voter to turn location ON before anything else
+- **OTP Sign-In**: matric number, then a 6-digit code by **email or SMS** (the voter's choice), sent only to the contact already stored for that voter
 - **One vote per voter**, enforced by the database
 - **Voter web app** and **mobile app** (Flutter) run side by side, each with its own API on the same database
 - **Admin dashboard**: **Email & SMS settings page** (SMTP, SMS provider, code rules, test buttons), open/close voting, live monitor and analytics, add/upload/delete candidates (with photo upload), voter CSV import, settings and branding with **school logo upload**
