@@ -197,8 +197,13 @@ def analytics(db: Session) -> dict:
 
 # ---------- admin: ballot setup ----------
 def _assert_ballot_unlocked(db: Session):
-    if get_settings(db)["election_status"] != "draft":
-        raise ServiceError("Ballot is locked once the election has opened. You can still edit names and details.", 409)
+    """The ballot (positions, candidates, photos) is locked while voting is open, and for good once any vote exists.
+    A draft, or a closed election in which nobody voted (for example an open/close test), can still be edited."""
+    if get_settings(db)["election_status"] == "open":
+        raise ServiceError("The ballot cannot be changed while voting is open. Close voting first.", 409)
+    if db.scalar(select(func.count()).select_from(VoteReceipt)):
+        raise ServiceError("Votes have already been cast, so the ballot is locked. If they were only test votes, "
+                           "go to Settings and use Clear all votes.", 409)
 
 
 def create_position(db: Session, title: str, display_order: int) -> Position:
