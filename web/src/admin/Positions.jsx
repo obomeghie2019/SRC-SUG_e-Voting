@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import api, { assetUrl, errMsg } from "../api";
+import { useConfig } from "../App.jsx";
+import CsvTemplatePanel from "./CsvTemplatePanel.jsx";
 
 const blank = { full_name: "", department: "", level: "", manifesto: "", photo_url: "" };
 
@@ -35,7 +37,28 @@ function CandidateForm({ initial, onSave, onCancel }) {
   );
 }
 
+const CANDIDATE_COLUMNS = [
+  ["position", true, "Position title. Created if it does not exist; use the same spelling for the same position."],
+  ["full_name", true, "Candidate's full name."],
+  ["department", false, "Shown on the ballot."],
+  ["level", false, "For example ND2 or HND1."],
+  ["manifesto", false, "Short statement. Put it in quotes if it contains commas."],
+  ["photo_url", false, "Leave blank. Add the photo afterwards with Edit, then choose a file."],
+];
+const CANDIDATE_SAMPLE = [
+  ["President", "Amina Yusuf", "Computer Science", "ND2", "Better welfare...", ""],
+  ["President", "Chidi Okafor", "Accountancy", "HND1", "Transparent funds...", ""],
+  ["Vice President", "Ibrahim Musa", "Electrical Eng.", "ND2", "Industry links...", ""],
+];
+const CANDIDATE_TIPS = [
+  "Open the template in Excel or Google Sheets, replace the example rows with your own, and save as CSV (comma delimited).",
+  "Keep the first row (the column names) exactly as it is.",
+  "Candidates already listed for a position are skipped, so you can safely upload the file again.",
+  "Uploading works while voting is not open and no votes have been cast.",
+];
+
 export default function Positions() {
+  const { election_status } = useConfig();
   const [list, setList] = useState([]);
   const [err, setErr] = useState("");
   const [newPos, setNewPos] = useState({ title: "", display_order: 0 });
@@ -56,7 +79,9 @@ export default function Positions() {
   const run = async (fn) => { setErr(""); try { await fn(); await load(); } catch (e) { setErr(errMsg(e)); } };
 
   return (
-    <div style={{ maxWidth: 900 }}>
+    <div className="row g-4">
+    <div className="col-xl-8">
+      {election_status === "open" && <div className="alert alert-warning">Voting is open, so the ballot cannot be changed. Close voting in Settings to edit positions and candidates.</div>}
       {err && <div className="alert alert-danger">{err}</div>}
       <form className="card p-3 mb-4 flex-row gap-2 align-items-end flex-wrap" onSubmit={(e) => { e.preventDefault(); run(async () => { await api.post("/admin/positions", newPos); setNewPos({ title: "", display_order: list.length + 1 }); }); }}>
         <div className="flex-grow-1"><label className="form-label small mb-1">New position</label>
@@ -67,7 +92,7 @@ export default function Positions() {
       </form>
 
       <div className="card p-3 mb-4">
-        <label className="form-label small mb-1">Upload candidates (CSV: position, full_name, department, level, manifesto, photo_url). Missing positions are created. Only before voting opens.</label>
+        <label className="form-label small mb-1">Upload candidates from a CSV file. Use the template on the right. Missing positions are created.</label>
         <input type="file" accept=".csv" className="form-control form-control-sm" onChange={uploadCandidates} />
         {imported && <div className="small mt-2">{imported.created.length} candidate(s) added, {imported.skipped.length} skipped{imported.skipped.length > 0 ? `: ${imported.skipped.slice(0, 3).map((r) => `${r.full_name || "(blank)"} (${r.reason})`).join("; ")}` : ""}.</div>}
       </div>
@@ -100,6 +125,12 @@ export default function Positions() {
             : <button className="btn btn-sm btn-outline-primary align-self-start mt-2" onClick={() => setEditing({ pid: p.id, cand: null })}>Add candidate</button>}
         </div>
       ))}
+    </div>
+    <div className="col-xl-4">
+      <CsvTemplatePanel title="Candidates CSV template" file="candidates_template.csv"
+        intro="Add many candidates at once. Download the template, fill it in, then upload it on the left."
+        columns={CANDIDATE_COLUMNS} sample={CANDIDATE_SAMPLE} tips={CANDIDATE_TIPS} />
+    </div>
     </div>
   );
 }

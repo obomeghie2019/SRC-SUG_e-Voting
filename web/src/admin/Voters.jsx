@@ -1,5 +1,27 @@
 import { useEffect, useState } from "react";
 import api, { errMsg } from "../api";
+import CsvTemplatePanel from "./CsvTemplatePanel.jsx";
+
+const STUDENT_COLUMNS = [
+  ["matric_no", true, "Unique. Students sign in with it."],
+  ["full_name", true, "Student's full name."],
+  ["email", false, "Where the code is sent by email. Email or phone is needed."],
+  ["phone", false, "Where the code is sent by SMS. 0801... or +234... both work."],
+  ["department", false, "Optional."],
+  ["level", false, "For example ND2 or HND1."],
+];
+const STUDENT_SAMPLE = [
+  ["CSC/2024/001", "Amina Yusuf", "amina.yusuf@example.com", "08012345678", "Computer Science", "ND2"],
+  ["ACC/2024/014", "Grace Eze", "grace.eze@example.com", "07034567890", "Accountancy", "HND1"],
+  ["MCM/2024/009", "Tunde Bello", "", "08156789012", "Mass Communication", "HND1"],
+];
+const STUDENT_TIPS = [
+  "Delete the example rows and add your real students before uploading.",
+  "Every student needs an email or a phone number, otherwise they cannot receive a code. Use the real contact of the student.",
+  "Save as CSV (comma delimited). Keep the first row (the column names) unchanged.",
+  "Uploading again updates the email and phone of matric numbers that already exist; nothing is duplicated.",
+  "Voters with no contact show \"none\" in red in the table. Fix them with Edit contact.",
+];
 
 export default function Voters() {
   const [data, setData] = useState({ total: 0, voters: [] });
@@ -26,7 +48,8 @@ export default function Voters() {
   async function toggle(v) { await api.post(`/admin/voters/${v.id}/active`, null, { params: { active: !v.is_active } }); load(); }
 
   return (
-    <>
+    <div className="row g-4">
+    <div className="col-xl-9">
       {err && <div className="alert alert-danger">{err}</div>}
       {result && (
         <div className="alert alert-info">
@@ -37,7 +60,7 @@ export default function Voters() {
         </div>
       )}
       <div className="card p-3 mb-3 flex-row flex-wrap gap-3 align-items-center">
-        <div><label className="form-label small mb-1">Import voters (CSV: matric_no, full_name, email, phone, department, level). Re-importing updates email and phone.</label>
+        <div><label className="form-label small mb-1">Import voters from a CSV file. Use the template on the right.</label>
           <input type="file" accept=".csv" className="form-control form-control-sm" onChange={upload} /></div>
         <div className="ms-auto" style={{ minWidth: 240 }}><label className="form-label small mb-1">Search</label>
           <input className="form-control form-control-sm" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Matric number or name" /></div>
@@ -59,6 +82,12 @@ export default function Voters() {
         </tbody>
       </table></div>
       <div className="card-footer small text-secondary">Showing {data.voters.length} of {data.total}</div></div>
-    </>
+    </div>
+    <div className="col-xl-3">
+      <CsvTemplatePanel title="Students CSV template" file="students_template.csv"
+        intro="Register voters in bulk. Download the template, fill it in, then upload it on the left."
+        columns={STUDENT_COLUMNS} sample={STUDENT_SAMPLE} tips={STUDENT_TIPS} />
+    </div>
+    </div>
   );
 }

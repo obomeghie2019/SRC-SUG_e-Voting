@@ -283,3 +283,52 @@ def test_test_buttons(web):
     ev = web.get(f"{W}/admin/reports/events", headers=h).json()
     changes = [e["detail"] for e in ev if e["event"] == "delivery_settings_changed"]
     assert changes and all("example.com" not in d for d in changes)           # field names are logged, never values
+
+
+# ---------- ballot lock rules ----------
+def test_ballot_lock_follows_open_state_and_votes(web):
+    from core import services
+    h = admin_headers(web)
+    pos = lambda: web.post(f"{W}/admin/positions", json={"title": "Director of Social", "display_order": 4}, headers=h)
+    set_status = lambda st: (lambda db: (services.set_status(db, st), db.close()))(SessionLocal())
+
+    set_status("closed")                       # opened and closed in a test, nobody voted: still editable
+    assert pos().status_code == 200
+    set_status("open")                         # voting open: locked, with the reason
+    r = pos()
+    assert r.status_code == 409 and "while voting is open" in r.json()["detail"]
+
+    _, r = sign_in(web, W)                     # a vote is cast ...
+    h2 = {"Authorization": f"Bearer {r.json()['token']}"}
+    assert web.post(f"{W}/vote", json={"selections": ballot_selection(web, r.json()["token"]), **LOC}, headers=h2).status_code == 200
+    set_status("closed")                       # ... so even when closed the ballot stays locked
+    r = pos()
+    assert r.status_code == 409 and "Votes have already been cast" in r.json()["detail"]
+    assert web.post(f"{W}/admin/candidates/import", files={"file": ("c.csv", b"position,full_name\nPresident,New Person\n")}, headers=h).status_code == 409
+
+
+# ---------- the downloadable CSV templates must import cleanly ----------
+def _template(name):
+    import pathlib
+    return (pathlib.Path(__file__).resolve().parents[2] / "web" / "public" / "templates" / name).read_bytes()
+
+
+def test_students_template_imports(web):
+    h = admin_headers(web)
+    r = web.post(f"{W}/admin/voters/import", files={"file": ("students_template.csv", _template("students_template.csv"))}, headers=h).json()
+    assert len(r["created"]) == 5 and r["skipped"] == []
+    assert r["created"][4] == {"matric_no": "MCM/2024/009", "full_name": "Tunde Bello", "has_email": False, "has_phone": True}
+
+
+def test_candidates_template_imports(web):
+    from core import services
+    h = admin_headers(web)
+    db = SessionLocal()
+    services.set_status(db, "draft")
+    db.close()
+    r = web.post(f"{W}/admin/candidates/import", files={"file": ("candidates_template.csv", _template("candidates_template.csv"))}, headers=h).json()
+    assert len(r["created"]) == 5 and r["skipped"] == []
+    pos = {p["title"]: p for p in web.get(f"{W}/admin/positions", headers=h).json()}
+    names = {c["full_name"] for c in pos["President"]["candidates"]}
+    assert names == {"Ada", "Bayo", "Amina Yusuf", "Chidi Okafor"}       # Ada and Bayo come from the test fixture
+    assert {"Vice President", "General Secretary", "Director of Sports"} <= set(pos)
