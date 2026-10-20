@@ -124,7 +124,7 @@ env:
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
 jobs:
-    sonarqube:
+  sonarqube:
     name: SonarQube Quality Gate
     # Needs the backend coverage report, so it starts after "Backend check" and runs alongside "Web build"
     needs: backend
@@ -151,7 +151,7 @@ jobs:
           args: >
             -Dsonar.qualitygate.wait=true
             -Dsonar.qualitygate.timeout=300
-    backend:
+  backend:
     name: Backend check
     runs-on: ubuntu-latest
     timeout-minutes: 10
