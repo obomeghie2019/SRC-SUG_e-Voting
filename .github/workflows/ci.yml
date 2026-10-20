@@ -24,9 +24,6 @@ jobs:
     name: Backend check
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v4
 
@@ -39,20 +36,24 @@ jobs:
             backend/requirements-dev.txt
 
       - name: Install dependencies
-        run: pip install --prefer-binary -r requirements.txt -r requirements-dev.txt pytest-cov pytest-xdist
+        run: pip install --prefer-binary -r backend/requirements.txt -r backend/requirements-dev.txt
 
-      - name: Run tests with coverage (parallel)
-        run: >
-          python -m pytest -q -n auto -p no:cacheprovider
-          --cov=core --cov=api_web --cov=api_mobile
-          --cov-report=xml:coverage.xml
-          --durations=5
+      - name: Compile all modules
+        working-directory: backend
+        run: python -m compileall -q core api_web api_mobile seed.py
+
+      # Run from the REPOSITORY ROOT so coverage.xml lists files as "backend/core/otp.py",
+      # which is how SonarQube knows them. (Run inside backend/ it lists bare names like "admin.py"
+      # and SonarQube cannot match them, so coverage stays at 0% and the gate fails.)
+      # .coveragerc at the repo root sets relative_files and what to measure.
+      - name: Run tests with coverage
+        run: python -m pytest backend/tests -q -p no:cacheprovider --cov --cov-report=xml:coverage.xml --durations=5
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
-          path: backend/coverage.xml
+          path: coverage.xml
           retention-days: 1
           compression-level: 0
 
@@ -75,7 +76,7 @@ jobs:
 
   sonarqube:
     name: SonarQube Quality Gate
-    # Only needs the backend coverage report, so it runs alongside the web build
+    # Needs the backend coverage report, so it starts after "Backend check" and runs alongside "Web build"
     needs: backend
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -84,11 +85,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Puts coverage.xml in the repo root, where sonar-project.properties expects it
       - name: Download coverage report
         uses: actions/download-artifact@v4
         with:
           name: backend-coverage
-          path: backend
+          path: .
 
       - name: SonarQube scan
         uses: SonarSource/sonarqube-scan-action@v7

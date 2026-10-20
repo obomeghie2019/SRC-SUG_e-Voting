@@ -19,7 +19,7 @@ app = FastAPI(title="SUG/SRC e-Voting: Mobile API")
 os.makedirs(config.UPLOAD_DIR, exist_ok=True)
 # Logo and candidate photos uploaded by the admin (stored as '/uploads/<name>' in the database)
 app.mount("/api/mobile/uploads", StaticFiles(directory=config.UPLOAD_DIR), name="uploads")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])  # native apps don't need CORS
+app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])  # native apps do not use CORS; this only matters for Flutter web
 
 
 @app.exception_handler(services.ServiceError)
