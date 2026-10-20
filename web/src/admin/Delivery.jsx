@@ -6,7 +6,7 @@ const PROVIDERS = {
   "": { name: "None (SMS off)", fields: [] },
   termii: { name: "Termii", fields: [["sms_api_key", "API key", true], ["sms_sender_id", "Sender ID (must be approved by Termii)", false]] },
   africastalking: { name: "Africa's Talking", fields: [["sms_username", "Username", false], ["sms_api_key", "API key", true], ["sms_sender_id", "Sender ID (optional)", false]] },
-  twilio: { name: "Twilio", fields: [["sms_username", "Account SID", false], ["sms_api_key", "Auth token", true], ["sms_sender_id", "From phone number (e.g. +1555...)", false]] },
+  twilio: { name: "Twilio", fields: [["sms_username", "Account SID (starts with AC)", false], ["sms_api_key", "Auth token", true], ["sms_sender_id", "From: your Twilio number (+1202...), a Messaging Service SID (MG...), or a sender name of up to 11 letters/digits", false]] },
 };
 
 function Status({ title, ready, missing }) {
@@ -57,6 +57,10 @@ export default function Delivery() {
     finally { setBusy(""); }
   }
 
+  // The test buttons use the SAVED settings, so they stay disabled while the form has unsaved changes.
+  const FORM_KEYS = ["smtp_host", "smtp_port", "smtp_user", "smtp_from", "smtp_starttls", "sms_provider", "sms_username", "sms_sender_id", "default_country_code", "otp_dev_mode", "otp_ttl_minutes", "otp_max_attempts", "otp_send_limit"];
+  const dirty = d && (FORM_KEYS.some((k) => String(f[k] ?? "") !== String(d[k] ?? "")) || secrets.smtp_password || secrets.sms_api_key || clear.smtp_password || clear.sms_api_key);
+
   if (!d) return msg.text ? <div className="alert alert-danger">{msg.text}</div> : "Loading";
   const src = (k) => (d.sources[k] === "env" ? <span className="badge text-bg-light border ms-1" title="Using the value from the server's .env file. Saving here overrides it.">from .env</span> : null);
   const provider = PROVIDERS[f.sms_provider] || PROVIDERS[""];
@@ -92,10 +96,10 @@ export default function Delivery() {
             <div className="col-md-4 d-flex align-items-end"><div className="form-check mb-2"><input id="tls" type="checkbox" className="form-check-input" checked={!!f.smtp_starttls} onChange={set("smtp_starttls")} /><label htmlFor="tls" className="form-check-label">Use STARTTLS</label></div></div>
           </div>
           <hr />
-          <label className="form-label small mb-1">Send a test email (saves are not needed first, but save before testing new details)</label>
+          <label className="form-label small mb-1">Send a test email (uses the saved settings)</label>
           <div className="input-group input-group-sm" style={{ maxWidth: 480 }}>
             <input className="form-control" type="email" placeholder="you@example.com" value={testTo.email} onChange={(e) => setTestTo({ ...testTo, email: e.target.value })} />
-            <button type="button" className="btn btn-outline-primary" disabled={!testTo.email || busy === "email"} onClick={() => test("email")}>{busy === "email" ? "Sending" : "Send test email"}</button>
+            <button type="button" className="btn btn-outline-primary" disabled={!testTo.email || busy === "email" || dirty} onClick={() => test("email")}>{busy === "email" ? "Sending" : "Send test email"}</button>
           </div>
         </div>
 
@@ -121,10 +125,10 @@ export default function Delivery() {
               <div className="form-text">Turns 0801... into +234801...</div></div>
           </div>
           <hr />
-          <label className="form-label small mb-1">Send a test SMS</label>
+          <label className="form-label small mb-1">Send a test SMS (uses the saved settings)</label>
           <div className="input-group input-group-sm" style={{ maxWidth: 480 }}>
             <input className="form-control" placeholder="08012345678" value={testTo.sms} onChange={(e) => setTestTo({ ...testTo, sms: e.target.value })} />
-            <button type="button" className="btn btn-outline-primary" disabled={!testTo.sms || busy === "sms"} onClick={() => test("sms")}>{busy === "sms" ? "Sending" : "Send test SMS"}</button>
+            <button type="button" className="btn btn-outline-primary" disabled={!testTo.sms || busy === "sms" || dirty} onClick={() => test("sms")}>{busy === "sms" ? "Sending" : "Send test SMS"}</button>
           </div>
         </div>
 
@@ -141,6 +145,7 @@ export default function Delivery() {
             <div className="form-text text-danger">For trying the system only. Never leave it on during a real election.</div></div>
         </div>
 
+        {dirty && <div className="alert alert-warning py-2 small">You have changes that are not saved yet. Click <strong>Save delivery settings</strong>, then use the test buttons.</div>}
         <button className="btn btn-primary" disabled={busy === "save"}>{busy === "save" ? "Saving" : "Save delivery settings"}</button>
         <span className="small text-secondary ms-3">Passwords and API keys are stored encrypted and are never shown again.</span>
       </form>

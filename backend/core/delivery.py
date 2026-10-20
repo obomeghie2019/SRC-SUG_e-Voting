@@ -7,6 +7,7 @@ read and must be entered again.
 """
 import base64
 import hashlib
+import re
 from dataclasses import asdict, dataclass
 
 from cryptography.fernet import Fernet, InvalidToken
@@ -146,9 +147,29 @@ def _int(name: str, v, lo: int, hi: int) -> int:
     return n
 
 
+_ALNUM_SENDER = re.compile(r"^[A-Za-z0-9 ]{1,11}$")
+
+
+def _check_twilio(provider: str, username: str | None, sender: str | None):
+    """Catch the usual Twilio mistakes at save time instead of failing later with a vague error."""
+    if provider != "twilio":
+        return
+    if username and not username.startswith("AC"):
+        raise ServiceError("A Twilio Account SID starts with AC. A value starting with SK is an API key, not the Account SID "
+                           "(find the Account SID and Auth token on the Twilio console home page).")
+    if sender and not (re.fullmatch(r"\+\d{8,15}", sender) or re.fullmatch(r"MG[0-9a-fA-F]{32}", sender)
+                       or _ALNUM_SENDER.match(sender)):
+        raise ServiceError("Twilio 'From' must be your Twilio phone number (like +12025550123), a Messaging Service SID "
+                           "(starts with MG), or an approved alphanumeric sender of up to 11 letters or digits. "
+                           "Hyphens and long names are not allowed.")
+
+
 def save(db: Session, data: dict, clear_secrets: list[str] | None = None) -> list[str]:
     """Validate and store the submitted fields. A blank secret keeps the saved one; add its name to
     clear_secrets to delete it. Returns the field names that were changed (never their values)."""
+    provider = str(data.get("sms_provider", load(db).sms_provider) or "").strip().lower()
+    _check_twilio(provider, str(data["sms_username"]).strip() if data.get("sms_username") else None,
+                  str(data["sms_sender_id"]).strip() if data.get("sms_sender_id") else None)
     clean: dict[str, str] = {}
     for name, v in data.items():
         if name in SECRET_FIELDS:

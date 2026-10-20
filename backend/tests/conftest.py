@@ -19,6 +19,7 @@ from core.models import Admin, AuditLog, AuthSession, Candidate, Position, Setti
 from core.security import hash_pw  # noqa: E402
 
 CODES: list[str] = []
+REAL_DELIVER = notify.deliver   # the autouse fixture below replaces notify.deliver; tests of the real senders use this
 
 
 @pytest.fixture(autouse=True)

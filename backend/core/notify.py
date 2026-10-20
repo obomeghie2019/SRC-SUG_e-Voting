@@ -147,7 +147,10 @@ def _send_sms(cfg, to: str, text: str):
             else:  # twilio
                 r = http.post(f"https://api.twilio.com/2010-04-01/Accounts/{cfg.sms_username}/Messages.json",
                               auth=(cfg.sms_username, cfg.sms_api_key),
-                              data={"To": to, "From": cfg.sms_sender_id, "Body": text})
+                              data={"To": to, "Body": text,
+                                    # MG... = a Twilio Messaging Service; anything else is a number or alphanumeric sender
+                                    **({"MessagingServiceSid": cfg.sms_sender_id} if cfg.sms_sender_id.startswith("MG")
+                                       else {"From": cfg.sms_sender_id})})
         r.raise_for_status()
     except httpx.HTTPStatusError as exc:
         log.error("SMS delivery failed (%s): %s", p, exc)

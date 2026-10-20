@@ -332,3 +332,17 @@ def test_candidates_template_imports(web):
     names = {c["full_name"] for c in pos["President"]["candidates"]}
     assert names == {"Ada", "Bayo", "Amina Yusuf", "Chidi Okafor"}       # Ada and Bayo come from the test fixture
     assert {"Vice President", "General Secretary", "Director of Sports"} <= set(pos)
+
+
+def test_twilio_fields_are_validated(web):
+    h = admin_headers(web)
+    put = lambda **kw: web.put(f"{W}/admin/delivery", headers=h, json={"sms_provider": "twilio", **kw})
+    r = put(sms_username="SKexample-api-key-sid")
+    assert r.status_code == 400 and "starts with AC" in r.json()["detail"]
+    r = put(sms_username="AC" + "a" * 32, sms_sender_id="SUG-Election 2026")
+    assert r.status_code == 400 and "Hyphens" in r.json()["detail"]
+    assert put(sms_username="AC" + "a" * 32, sms_sender_id="+12025550123", sms_api_key="token").status_code == 200
+    assert put(sms_sender_id="MG" + "b" * 32).status_code == 200
+    assert put(sms_sender_id="SUGVOTE").status_code == 200
+    # other providers are not affected
+    assert web.put(f"{W}/admin/delivery", headers=h, json={"sms_provider": "termii", "sms_username": "whatever"}).status_code == 200
