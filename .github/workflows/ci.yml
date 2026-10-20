@@ -124,7 +124,34 @@ env:
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
 jobs:
-  backend:
+    sonarqube:
+    name: SonarQube Quality Gate
+    # Needs the backend coverage report, so it starts after "Backend check" and runs alongside "Web build"
+    needs: backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Puts coverage.xml in the repo root, where sonar-project.properties expects it
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-coverage
+          path: .
+
+      - name: SonarQube scan
+        uses: SonarSource/sonarqube-scan-action@v7
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          args: >
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300
+    backend:
     name: Backend check
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -178,33 +205,7 @@ jobs:
       - run: npm ci --prefer-offline --no-audit --no-fund
       - run: npm run build
 
-  sonarqube:
-    name: SonarQube Quality Gate
-    # Needs the backend coverage report, so it starts after "Backend check" and runs alongside "Web build"
-    needs: backend
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      # Puts coverage.xml in the repo root, where sonar-project.properties expects it
-      - name: Download coverage report
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-coverage
-          path: .
-
-      - name: SonarQube scan
-        uses: SonarSource/sonarqube-scan-action@v7
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonarcloud.io
-        with:
-          args: >
-            -Dsonar.qualitygate.wait=true
-            -Dsonar.qualitygate.timeout=300
 
 
 
