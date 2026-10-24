@@ -19,7 +19,7 @@
 /mobile/                   @activist507 @obomeghie2019 @360globalnetworklimited-ng
 
 # CI, workflows, PR template
-/.github/                  @activist507 @obomeghie2019 @360globalnetworklimited-ng
+/.github/                  @obomeghie2019 @360globalnetworklimited-ng
 
 # Deployment and project config
 /docker-compose.yml        @activist507 @obomeghie2019 @360globalnetworklimited-ng
