@@ -1,6 +1,6 @@
 name: CI
 
-# Order of the jobs (each one starts only if the previous one passed):
+# Order of the jobs (Each starts only if the previous one has finished running):
 #   1. SonarQube Quality Gate   runs the tests with coverage, then the SonarQube scan
 #   2. Web build
 #   3. Backend check
@@ -61,6 +61,21 @@ jobs:
           args: >
             -Dsonar.qualitygate.wait=true
             -Dsonar.qualitygate.timeout=300
+
+      # Runs only when the scan step fails: prints WHICH quality gate conditions failed, right here in the log.
+      # (Ratings: 1 = A, 2 = B, 3 = C, 4 = D, 5 = E.)
+      - name: Show failed quality gate conditions
+        if: failure()
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          PROJECT_KEY: obomeghie2019_SRC-SUG_e-Voting
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ -n "$PR_NUMBER" ]; then SCOPE="pullRequest=$PR_NUMBER"; else SCOPE="branch=$BRANCH"; fi
+          echo "Analysis checked: $SCOPE"
+          curl -s -u "$SONAR_TOKEN:" "https://sonarcloud.io/api/qualitygates/project_status?projectKey=$PROJECT_KEY&$SCOPE" \
+            | jq -r '.projectStatus | "Gate status: \(.status)", (.conditions[]? | select(.status == "ERROR") | "FAILED: \(.metricKey)  actual=\(.actualValue)  required \(.comparator) \(.errorThreshold)")'
 
   web:
     name: Web build
