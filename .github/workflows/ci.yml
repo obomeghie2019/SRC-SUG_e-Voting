@@ -10,9 +10,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
-permissions:
-  contents: read
-  pull-requests: read
+# No permissions by default; each job asks only for what it needs (see "permissions" in every job).
+permissions: {}
 
 # Cancel outdated runs when a new commit is pushed to the same branch/PR
 concurrency:
@@ -28,6 +27,9 @@ jobs:
     name: SonarQube Quality Gate
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,12 +39,13 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: |
-            backend/requirements.txt
-            backend/requirements-dev.txt
+          cache-dependency-path: backend/requirements-ci.lock
 
+      # Exact versions, every file checked against its hash, wheels only (no setup scripts are run).
+      # After changing backend/requirements*.txt, regenerate backend/requirements-ci.lock (command in its first lines).
       - name: Install backend dependencies
-        run: pip install --prefer-binary -r backend/requirements.txt -r backend/requirements-dev.txt
+        run: |
+          pip install --require-hashes --only-binary :all: --no-deps -r backend/requirements-ci.lock
 
       # Run from the repository root so coverage.xml lists "backend/core/otp.py" (the path SonarQube knows).
       # .coveragerc at the repo root sets relative_files and what is measured.
@@ -64,6 +67,8 @@ jobs:
     needs: sonarqube
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: web
@@ -82,6 +87,8 @@ jobs:
     needs: web
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: backend
@@ -91,11 +98,10 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: |
-            backend/requirements.txt
-            backend/requirements-dev.txt
+          cache-dependency-path: backend/requirements-ci.lock
       - name: Install dependencies
-        run: pip install --prefer-binary -r requirements.txt -r requirements-dev.txt
+        run: |
+          pip install --require-hashes --only-binary :all: --no-deps -r requirements-ci.lock
       - name: Compile all modules
         run: python -m compileall -q core api_web api_mobile seed.py
       - name: Run tests
