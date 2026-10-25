@@ -1,6 +1,6 @@
 name: CI
 
-# Order of the jobs (Each starts only if the previous one has finished running):
+# Order of the jobs (each one starts only if the previous one passed):
 #   1. SonarQube Quality Gate   runs the tests with coverage, then the SonarQube scan
 #   2. Web build
 #   3. Backend check
@@ -76,6 +76,10 @@ jobs:
           echo "Analysis checked: $SCOPE"
           curl -s -u "$SONAR_TOKEN:" "https://sonarcloud.io/api/qualitygates/project_status?projectKey=$PROJECT_KEY&$SCOPE" \
             | jq -r '.projectStatus | "Gate status: \(.status)", (.conditions[]? | select(.status == "ERROR") | "FAILED: \(.metricKey)  actual=\(.actualValue)  required \(.comparator) \(.errorThreshold)")'
+          echo ""
+          echo "Security and reliability issues in new code, most severe first (rule  file:line  [quality/severity]  message):"
+          curl -s -u "$SONAR_TOKEN:" "https://sonarcloud.io/api/issues/search?componentKeys=$PROJECT_KEY&$SCOPE&issueStatuses=OPEN,CONFIRMED&inNewCodePeriod=true&impactSoftwareQualities=SECURITY,RELIABILITY&ps=200" \
+            | jq -r '(.errors // [] | .[] | "API error: " + .msg), ((.issues // []) | map(. + {rank: ((.impacts // []) | map(select(.softwareQuality == "RELIABILITY" or .softwareQuality == "SECURITY") | ({"BLOCKER": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}[.severity] // 5)) | min // 5)}) | sort_by(.rank) | .[] | select(.rank < 5) | "\(.rule)  \(.component | sub("^[^:]+:"; "")):\(.line // 0)  [\((.impacts // []) | map(.softwareQuality + "/" + .severity) | join(","))]  \(.message)")'
 
   web:
     name: Web build
