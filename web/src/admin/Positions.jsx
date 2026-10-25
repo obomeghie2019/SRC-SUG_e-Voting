@@ -40,8 +40,8 @@ function CandidateForm({ initial, onSave, onCancel }) {
 const CANDIDATE_COLUMNS = [
   ["position", true, "Position title. Created if it does not exist; use the same spelling for the same position."],
   ["full_name", true, "Candidate's full name."],
-  ["department", false, "Shown on the ballot."],
-  ["level", false, "For example ND2 or HND1."],
+  ["department", true, "Shown on the ballot."],
+  ["level", true, "For example ND2 or HND1."],
   ["manifesto", false, "Short statement. Put it in quotes if it contains commas."],
   ["photo_url", false, "Leave blank. Add the photo afterwards with Edit, then choose a file."],
 ];
