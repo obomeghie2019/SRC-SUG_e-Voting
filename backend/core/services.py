@@ -344,9 +344,9 @@ def import_candidates(db: Session, rows: list[dict]) -> dict:
     next_order = (max((p.display_order for p in by_title.values()), default=0)) + 1
     created, skipped = [], []
     for r in rows:
-        title, name = (r.get("position") or "").strip(), (r.get("full_name") or "").strip()
-        if not title or not name:
-            skipped.append({"full_name": name, "reason": "missing position or full_name"})
+        title, name, department, level= (r.get("position") or "").strip(), (r.get("full_name") or "").strip(), (r.get("department") or ""), (r.get("level") or "")
+        if not title or not name or not department or not level:
+            skipped.append({"full_name": name, "reason": "missing position, full_name, department or level"})
             continue
         pos = by_title.get(title.lower())
         if pos is None:
