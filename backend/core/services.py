@@ -27,8 +27,8 @@ PUBLIC_KEYS = ("institution_name", "election_title", "election_status", "logo_ur
 
 # ---------- settings ----------
 def get_settings(db: Session) -> dict:
-    # 'delivery.*' rows hold encrypted SMTP/SMS secrets and are managed by core/delivery.py only
-    stored = {s.key: s.value for s in db.scalars(select(Setting)) if not s.key.startswith(delivery.PREFIX)}
+    # 'delivery.*' rows hold encrypted SMTP/SMS secrets (core/delivery.py); 'license.*' holds the license state (core/licensing.py)
+    stored = {s.key: s.value for s in db.scalars(select(Setting)) if not s.key.startswith((delivery.PREFIX, "license."))}
     return {**DEFAULTS, **stored}
 
 
@@ -344,9 +344,9 @@ def import_candidates(db: Session, rows: list[dict]) -> dict:
     next_order = (max((p.display_order for p in by_title.values()), default=0)) + 1
     created, skipped = [], []
     for r in rows:
-        title, name, department, level= (r.get("position") or "").strip(), (r.get("full_name") or "").strip(), (r.get("department") or ""), (r.get("level") or "")
-        if not title or not name or not department or not level:
-            skipped.append({"full_name": name, "reason": "missing position, full_name, department or level"})
+        title, name = (r.get("position") or "").strip(), (r.get("full_name") or "").strip()
+        if not title or not name:
+            skipped.append({"full_name": name, "reason": "missing position or full_name"})
             continue
         pos = by_title.get(title.lower())
         if pos is None:

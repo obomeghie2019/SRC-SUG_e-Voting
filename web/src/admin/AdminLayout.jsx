@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import api from "../api";
 import { useConfig } from "../App.jsx";
@@ -12,6 +12,8 @@ export default function AdminLayout() {
   const nav = useNavigate();
   const { institution_name, election_status } = useConfig();
   const token = sessionStorage.getItem("admin_token");
+  const [lic, setLic] = useState(null);
+  useEffect(() => { api.get("/license").then((r) => setLic(r.data)).catch(() => {}); }, []);
 
   useEffect(() => {
     if (!token) { nav("/admin/login"); return; }
@@ -39,7 +41,14 @@ export default function AdminLayout() {
           </div>
         </div>
       </nav>
-      <main className="container-fluid px-4 py-4"><Outlet /></main>
+      <main className="container-fluid px-4 py-4">
+        {lic?.valid && lic.days_left <= 14 && (
+          <div className="alert alert-warning no-print">
+            <strong>License expires in {lic.days_left} day{lic.days_left === 1 ? "" : "s"}</strong> ({lic.expires}). Contact the system vendor to renew it before then, because the application stops working when it expires.
+          </div>
+        )}
+        <Outlet />
+      </main>
     </>
   );
 }

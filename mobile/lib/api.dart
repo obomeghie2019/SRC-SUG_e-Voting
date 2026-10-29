@@ -12,6 +12,9 @@ class ApiException implements Exception {
   final int status;
   final String message;
   ApiException(this.status, this.message);
+
+  /// The server refuses everything while the license is missing, changed, expired or locked.
+  bool get isLicense => (status == 403 || status == 503) && message.startsWith('License');
   @override
   String toString() => message;
 }

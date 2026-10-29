@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'api.dart';
 import 'ballot_screen.dart';
+import 'license_screen.dart';
 import 'login_screen.dart';
 
 void main() => runApp(const VotingApp());
@@ -19,6 +20,7 @@ class VotingApp extends StatefulWidget {
 class _VotingAppState extends State<VotingApp> {
   Map<String, dynamic> cfg = {'institution_name': '', 'election_title': 'e-Voting', 'election_status': 'draft', 'theme_color': '#0b6e4f', 'location_required': true};
   bool? signedIn;
+  String? licenseMessage; // set while the server reports a license problem
 
   @override
   void initState() {
@@ -29,10 +31,13 @@ class _VotingAppState extends State<VotingApp> {
   Future<void> refresh() async {
     final t = await Api.token;
     Map<String, dynamic> c = cfg;
+    String? blocked;
     try {
       c = await Api.config();
+    } on ApiException catch (e) {
+      if (e.isLicense) blocked = e.message;
     } catch (_) {}
-    if (mounted) setState(() { cfg = c; signedIn = t != null; });
+    if (mounted) setState(() { cfg = c; signedIn = t != null; licenseMessage = blocked; });
   }
 
   @override
@@ -42,7 +47,9 @@ class _VotingAppState extends State<VotingApp> {
       debugShowCheckedModeBanner: false,
       title: cfg['election_title'] as String,
       theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: brand), useMaterial3: true),
-      home: signedIn == null
+      home: licenseMessage != null
+          ? LicenseScreen(message: licenseMessage!, onRetry: refresh)
+          : signedIn == null
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
           : signedIn!
               ? BallotScreen(cfg: cfg, onSignedOut: () => setState(() => signedIn = false), onRefreshConfig: refresh)

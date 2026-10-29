@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from core import config, schemas, services
+from core import config, licensing_api, schemas, services
 from core.db import get_db, init_db
 from core.security import WEB, make_token
 from core.voter_router import build_router
@@ -18,6 +18,8 @@ app = FastAPI(title="SUG/SRC e-Voting: Web API")
 os.makedirs(config.UPLOAD_DIR, exist_ok=True)
 # Logo and candidate photos uploaded by the admin (stored as '/uploads/<name>' in the database)
 app.mount("/api/web/uploads", StaticFiles(directory=config.UPLOAD_DIR), name="uploads")
+# License gate first, then CORS: CORS then wraps the gate, so a blocked response still carries CORS headers
+licensing_api.install(app, "/api/web")
 app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
 
 
@@ -29,6 +31,7 @@ async def service_error(_: Request, exc: services.ServiceError):
 @app.on_event("startup")
 def startup():
     init_db()
+    licensing_api.log_startup()
 
 
 @app.get("/api/web/config")

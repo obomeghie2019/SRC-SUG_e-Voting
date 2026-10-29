@@ -28,7 +28,7 @@ def fresh_db(monkeypatch):
     db = SessionLocal()
     for model in (Vote, VoteReceipt, AuthSession, AuditLog, Candidate, Position, Voter, Admin):
         db.query(model).delete()
-    db.query(Setting).filter(Setting.key.like("delivery.%")).delete(synchronize_session=False)
+    db.query(Setting).filter(Setting.key.like("delivery.%") | Setting.key.like("license.%")).delete(synchronize_session=False)
     db.commit()
     db.add(Admin(username="admin", full_name="Admin", password_hash=hash_pw("secret-admin")))
     p = Position(title="President")
@@ -70,3 +70,59 @@ def sign_in(client, base, matric="T/001", channel="email", code=None):
     assert client.post(f"{base}/auth/otp/send", json={"session_id": sid, "channel": channel}).status_code == 200
     r = client.post(f"{base}/auth/otp/verify", json={"session_id": sid, "otp": code or CODES[-1], **LOC})
     return sid, r
+
+
+# ---------- license: a throw-away key pair and a valid license.bat for every test ----------
+class LicenseKit:
+    """Test helper: the signing key, the license file location, and ways to (re)write or damage the file."""
+
+    def __init__(self, path, private):
+        self.path, self.private = path, private
+
+    def write(self, days=30, licensee="Test Polytechnic", today=None):
+        import license_tool
+        from datetime import date, timedelta
+        today = today or date.today()
+        import tempfile, os
+        fd, key_path = tempfile.mkstemp(suffix=".pem")
+        os.close(fd)
+        os.remove(key_path)
+        from cryptography.hazmat.primitives import serialization
+        with open(key_path, "wb") as f:
+            f.write(self.private.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
+        try:
+            license_tool.issue(key_path, licensee, today + timedelta(days=days), self.path, today=today)
+        finally:
+            os.remove(key_path)
+        return self.text()
+
+    def text(self):
+        return self.path.read_bytes().decode("utf-8")
+
+    def replace(self, old, new):
+        raw = self.path.read_bytes().decode("utf-8")
+        assert old in raw, old
+        self.path.write_bytes(raw.replace(old, new).encode("utf-8"))
+
+    def unlock_code(self, lock_id):
+        import base64
+        from core import licensing
+        return base64.urlsafe_b64encode(self.private.sign(licensing.unlock_message(lock_id))).decode().rstrip("=")
+
+
+@pytest.fixture(autouse=True)
+def lic(fresh_db, tmp_path, monkeypatch):
+    import base64
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from core import config, licensing
+    private = Ed25519PrivateKey.generate()
+    public_b64 = base64.b64encode(private.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)).decode()
+    monkeypatch.setattr(licensing, "PUBLIC_KEY_B64", public_b64)
+    monkeypatch.setattr(licensing, "CACHE_SECONDS", 0)
+    monkeypatch.setattr(config, "LICENSE_FILE", str(tmp_path / "license.bat"))
+    licensing.reset_cache()
+    kit = LicenseKit(tmp_path / "license.bat", private)
+    kit.write()
+    yield kit
+    licensing.reset_cache()

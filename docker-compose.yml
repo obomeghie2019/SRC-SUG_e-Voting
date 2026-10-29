@@ -30,6 +30,7 @@ services:
     command: sh -c "python seed.py ${SEED_ARGS:-} && uvicorn api_web.main:app --host 0.0.0.0 --port 8001"
     volumes:
       - uploads:/app/uploads      # school logo and candidate photos
+      - ./license.bat:/app/license.bat:ro   # signed license; create it first (README: License seal)
     depends_on:
       db:
         condition: service_healthy
@@ -53,6 +54,7 @@ services:
     command: uvicorn api_mobile.main:app --host 0.0.0.0 --port 8002
     volumes:
       - uploads:/app/uploads:ro   # same images, read-only
+      - ./license.bat:/app/license.bat:ro
     depends_on:
       api_web:
         condition: service_healthy

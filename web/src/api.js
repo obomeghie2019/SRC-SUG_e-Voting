@@ -10,6 +10,13 @@ api.interceptors.request.use((cfg) => {
   return cfg;
 });
 
+// Any API answer that says "license problem" (403 + a license object) locks the whole UI, even in the middle of a session.
+api.interceptors.response.use((r) => r, (e) => {
+  const lic = e?.response?.status === 403 && e.response.data?.license;
+  if (lic) window.dispatchEvent(new CustomEvent("license-blocked", { detail: lic }));
+  return Promise.reject(e);
+});
+
 export const errMsg = (e, fallback = "Something went wrong. Try again.") => {
   const d = e?.response?.data?.detail;
   return typeof d === "string" ? d : fallback;

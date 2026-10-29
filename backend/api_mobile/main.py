@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from core import config, services
+from core import config, licensing_api, services
 from core.db import get_db, init_db
 from core.models import Voter
 from core.security import MOBILE, require
@@ -19,6 +19,8 @@ app = FastAPI(title="SUG/SRC e-Voting: Mobile API")
 os.makedirs(config.UPLOAD_DIR, exist_ok=True)
 # Logo and candidate photos uploaded by the admin (stored as '/uploads/<name>' in the database)
 app.mount("/api/mobile/uploads", StaticFiles(directory=config.UPLOAD_DIR), name="uploads")
+# License gate first, then CORS: CORS then wraps the gate, so a blocked response still carries CORS headers
+licensing_api.install(app, "/api/mobile")
 app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])  # native apps do not use CORS; this only matters for Flutter web
 
 
@@ -30,6 +32,7 @@ async def service_error(_: Request, exc: services.ServiceError):
 @app.on_event("startup")
 def startup():
     init_db()
+    licensing_api.log_startup()
 
 
 voter_only = require(MOBILE, "voter")

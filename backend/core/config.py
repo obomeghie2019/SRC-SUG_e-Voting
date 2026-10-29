@@ -61,3 +61,8 @@ DEFAULT_COUNTRY_CODE = os.getenv("DEFAULT_COUNTRY_CODE", "234")   # used to norm
 # ---- Uploaded images (school logo, candidate photos) ----
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads"))
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "2"))
+
+# ---- License seal (see core/licensing.py) ----
+# Optional: full path of the license file. By default it is license.bat in the project root
+# (or next to core/ in Docker). Pointing it somewhere else does not weaken the check: the file must still carry a valid signature.
+LICENSE_FILE = os.getenv("LICENSE_FILE", "")

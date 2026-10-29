@@ -12,19 +12,28 @@ import Monitor from "./admin/Monitor.jsx";
 import Analytics from "./admin/Analytics.jsx";
 import Forensics from "./admin/Forensics.jsx";
 import Delivery from "./admin/Delivery.jsx";
+import LicenseBlocked from "./pages/LicenseBlocked.jsx";
 
 const ConfigCtx = createContext({});
 export const useConfig = () => useContext(ConfigCtx);
 
 export default function App() {
   const [cfg, setCfg] = useState({ institution_name: "", election_title: "e-Voting", election_status: "draft", logo_url: "", theme_color: "#0b6e4f", location_required: true });
-  const reload = () => api.get("/config").then((r) => setCfg(r.data)).catch(() => {});
+  const [blocked, setBlocked] = useState(null);   // license problem reported by the API
+  const reload = () => api.get("/config").then((r) => { setBlocked(null); setCfg(r.data); }).catch(() => {});
 
   useEffect(() => { reload(); }, []);
+  useEffect(() => {
+    const on = (e) => setBlocked(e.detail);
+    window.addEventListener("license-blocked", on);
+    return () => window.removeEventListener("license-blocked", on);
+  }, []);
   useEffect(() => {
     document.title = `${cfg.election_title} | ${cfg.institution_name}`;
     document.documentElement.style.setProperty("--brand", cfg.theme_color || "#0b6e4f");
   }, [cfg]);
+
+  if (blocked) return <LicenseBlocked info={blocked} onRetry={reload} />;
 
   return (
     <ConfigCtx.Provider value={{ ...cfg, reload }}>

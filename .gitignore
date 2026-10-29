@@ -29,3 +29,8 @@ evoting.sql
 
 # Uploaded logo and candidate photos
 backend/uploads/
+
+# License seal: NEVER commit the private signing key. license.bat is issued per deployment.
+license_private*.pem
+*.pem
+license.bat
