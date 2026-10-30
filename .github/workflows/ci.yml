@@ -1,9 +1,10 @@
 name: CI
 
-# Order of the jobs (each one starts only if the previous one passed):
-#   1. SonarQube Quality Gate   runs the tests with coverage, then the SonarQube scan
-#   2. Web build
-#   3. Backend check
+# Order of the jobs (each one starts only if the previous one passed or was skipped):
+#   1. SonarQube Quality Gate   PULL REQUESTS ONLY: tests with coverage, then the SonarQube scan.
+#                               SonarQube judges just the code changed in the pull request.
+#   2. Web build                runs on pull requests and on pushes to main
+#   3. Backend check            runs on pull requests and on pushes to main
 on:
   push:
     branches: [main]
@@ -25,6 +26,7 @@ env:
 jobs:
   sonarqube:
     name: SonarQube Quality Gate
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -84,6 +86,7 @@ jobs:
   web:
     name: Web build
     needs: sonarqube
+    if: ${{ !cancelled() && (needs.sonarqube.result == 'success' || needs.sonarqube.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -104,6 +107,7 @@ jobs:
   backend:
     name: Backend check
     needs: web
+    if: ${{ !cancelled() && needs.web.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
