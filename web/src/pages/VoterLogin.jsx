@@ -158,7 +158,7 @@ export default function VoterLogin() {
         )}
       </div>
       <p className="small text-secondary text-center mt-3 mb-0">Your location, IP address and device are recorded with your vote for election security.</p>
-      <div className="text-center mt-2"><Link to="/admin/login" className="small text-secondary">Administrator sign in</Link></div>
+      
     </div>
   );
 }
