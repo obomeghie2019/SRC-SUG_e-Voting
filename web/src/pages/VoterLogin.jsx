@@ -4,6 +4,7 @@ import api, { errMsg } from "../api";
 import { useConfig } from "../App.jsx";
 import { deviceId, geoSupport, getPosition, watchPermission } from "../lib/geo";
 import Brand from "./Brand.jsx";
+import Spinner from "./Spinner.jsx";
 
 const STEPS = ["Location", "Matric number", "Delivery", "Code"];
 
@@ -34,6 +35,7 @@ export default function VoterLogin() {
   const [resendIn, setResendIn] = useState(0);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sending, setSending] = useState(false); // true only while a code is being sent (so the Resend button shows its own spinner)
   const asked = useRef(false);
 
   async function askLocation() {
@@ -74,12 +76,12 @@ export default function VoterLogin() {
   }
 
   async function sendCode() {
-    setBusy(true); setErr("");
+    setBusy(true); setSending(true); setErr("");
     try {
       const { data } = await api.post("/auth/otp/send", { session_id: session.session_id, channel });
       setSentTo(data.sent_to); setSecondsLeft(data.expires_in_seconds); setResendIn(30); setCode(""); setStep(3);
     } catch (ex) { setErr(errMsg(ex)); }
-    finally { setBusy(false); }
+    finally { setBusy(false); setSending(false); }
   }
 
   async function verify(e) {
@@ -114,7 +116,9 @@ export default function VoterLogin() {
             <p className="small text-secondary">Voting needs your location to confirm you are voting from an allowed place.
               Your browser will ask for permission. Choose <strong>Allow</strong>.</p>
             {locErr && <div className="alert alert-warning py-2 small">{locErr}</div>}
-            <button className="btn btn-primary w-100" disabled={busy} onClick={askLocation}>{busy ? "Checking location" : "Turn on location"}</button>
+            <button className="btn btn-primary w-100" disabled={busy} onClick={askLocation}>
+              <Spinner busy={busy} text="Checking location">Turn on location</Spinner>
+            </button>
             <p className="small text-secondary mt-3 mb-0">If you blocked it earlier: tap the padlock beside the web address, set Location to Allow, and this page continues by itself.</p>
           </>
         )}
@@ -124,7 +128,9 @@ export default function VoterLogin() {
             <p className="small text-success mb-3">✓ Location is on{pos?.accuracy_m ? ` (±${Math.round(pos.accuracy_m)} m)` : ""}</p>
             <label className="form-label">Matric number</label>
             <input className="form-control mb-3" value={matric} autoFocus required onChange={(e) => setMatric(e.target.value)} />
-            <button className="btn btn-primary w-100" disabled={busy || !matric.trim()}>{busy ? "Checking" : "Continue"}</button>
+            <button className="btn btn-primary w-100" disabled={busy || !matric.trim()}>
+              <Spinner busy={busy} text="Checking">Continue</Spinner>
+            </button>
           </form>
         )}
 
@@ -139,7 +145,9 @@ export default function VoterLogin() {
                 </label>
               ))}
             </div>
-            <button className="btn btn-primary w-100" disabled={busy || !channel} onClick={sendCode}>{busy ? "Sending" : "Send code"}</button>
+            <button className="btn btn-primary w-100" disabled={busy || !channel} onClick={sendCode}>
+              <Spinner busy={busy} text="Sending">Send code</Spinner>
+            </button>
             <button className="btn btn-link btn-sm w-100 mt-2" onClick={() => { setStep(1); setErr(""); }}>Use a different matric number</button>
           </>
         )}
@@ -149,9 +157,13 @@ export default function VoterLogin() {
             <p className="small mb-2">We sent a 6-digit code to <strong>{sentTo}</strong>.{secondsLeft > 0 ? ` It expires in ${mm}:${ss}.` : " It has expired. Request a new one."}</p>
             <input className="form-control form-control-lg text-center mb-3" inputMode="numeric" autoComplete="one-time-code" maxLength={6}
               placeholder="000000" value={code} autoFocus required onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} />
-            <button className="btn btn-primary w-100" disabled={busy || code.length !== 6}>{busy ? "Checking" : "Verify and continue"}</button>
+            <button className="btn btn-primary w-100" disabled={busy || code.length !== 6}>
+              <Spinner busy={busy && !sending} text="Checking">Verify and continue</Spinner>
+            </button>
             <div className="d-flex justify-content-between mt-2">
-              <button type="button" className="btn btn-link btn-sm" disabled={busy || resendIn > 0} onClick={sendCode}>{resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}</button>
+              <button type="button" className="btn btn-link btn-sm" disabled={busy || resendIn > 0} onClick={sendCode}>
+                <Spinner busy={sending} text="Sending">{resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}</Spinner>
+              </button>
               <button type="button" className="btn btn-link btn-sm" onClick={() => { setStep(2); setErr(""); }}>Change delivery option</button>
             </div>
           </form>
