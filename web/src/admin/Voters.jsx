@@ -5,10 +5,10 @@ import CsvTemplatePanel from "./CsvTemplatePanel.jsx";
 const STUDENT_COLUMNS = [
   ["matric_no", true, "Unique. Students sign in with it."],
   ["full_name", true, "Student's full name."],
-  ["email", false, "Where the code is sent by email. Email or phone is needed."],
-  ["phone", false, "Where the code is sent by SMS. 0801... or +234... both work."],
-  ["department", false, "Optional."],
-  ["level", false, "For example ND2 or HND1."],
+  ["email", true, "Where the code is sent by email. Email or phone is needed."],
+  ["phone", true, "Where the code is sent by SMS. 0801... or +234... both work."],
+  ["department", true, "Optional."],
+  ["level", true, "For example ND2 or HND1."],
 ];
 const STUDENT_SAMPLE = [
   ["CSC/2024/001", "Amina Yusuf", "amina.yusuf@example.com", "08012345678", "Computer Science", "ND2"],
