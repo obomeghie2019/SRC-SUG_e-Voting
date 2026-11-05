@@ -275,10 +275,26 @@ def import_voters(db: Session, rows: list[dict]) -> dict:
         matric, name = (r.get("matric_no") or "").strip(), (r.get("full_name") or "").strip()
         email = (r.get("email") or "").strip()
         phone = notify.normalize_phone(r.get("phone") or "", cc)
+        department, level = (r.get("department") or "").strip(), (r.get("level") or "").strip()
+
         if not matric:
             skipped.append({"matric_no": matric, "reason": "missing matric_no"})
-        elif email and not notify.valid_email(email):
+
+        elif not email:
+            skipped.append({"matric_no": matric, "reason":"missing email"})
+
+        elif not notify.valid_email(email):
             skipped.append({"matric_no": matric, "reason": "invalid email"})
+
+        elif not phone:
+            skipped.append({"matric_no": matric, "reason": "missing phone"})
+
+        elif not department:
+            skipped.append({"matric_no": matric, "reason": "missing department"})
+
+        elif not level:
+            skipped.append({"matric_no": matric, "reason": "missing level"})
+
         elif matric.lower() in existing:
             v = existing[matric.lower()]
             changed = False
@@ -286,8 +302,13 @@ def import_voters(db: Session, rows: list[dict]) -> dict:
                 v.email, changed = email, True
             if phone and v.phone != phone:
                 v.phone, changed = phone, True
+            if department and v.department != department:
+                v.department, changed = department, True
+            if level and v.level != level:
+                v.level, changed = level, True
             (updated if changed else skipped).append(
                 {"matric_no": matric, **({} if changed else {"reason": "already registered"})})
+            
         elif not name:
             skipped.append({"matric_no": matric, "reason": "missing full_name"})
         else:
