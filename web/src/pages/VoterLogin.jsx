@@ -121,7 +121,14 @@ export default function VoterLogin() {
 
         {step === 1 && (
           <form onSubmit={lookup}>
-            <p className="small text-success mb-3">✓ Location is on{pos?.accuracy_m ? ` (±${Math.round(pos.accuracy_m)} m)` : ""}</p>
+           <p className="small text-success mb-3">
+  {pos?.latitude != null && pos?.longitude != null && (
+    <>
+      <br />
+      Voters's Current Location: Lat: {Number(pos.latitude).toFixed(6)}, Long: {Number(pos.longitude).toFixed(6)}
+    </>
+  )}
+</p> 
             <label className="form-label">Matric number</label>
             <input className="form-control mb-3" value={matric} autoFocus required onChange={(e) => setMatric(e.target.value)} />
             <button className="btn btn-primary w-100" disabled={busy || !matric.trim()}>{busy ? "Checking" : "Continue"}</button>
