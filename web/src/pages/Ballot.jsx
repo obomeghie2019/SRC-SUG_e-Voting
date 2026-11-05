@@ -4,6 +4,7 @@ import api, { assetUrl, errMsg } from "../api";
 import { useConfig } from "../App.jsx";
 import { getPosition } from "../lib/geo";
 import Brand from "./Brand.jsx";
+import Spinner from "./Spinner.jsx";
 
 const initials = (n) => n.split(" ").map((w) => w[0]).slice(0, 2).join("");
 
@@ -15,6 +16,7 @@ export default function Ballot() {
   const [err, setErr] = useState("");
   const [receipt, setReceipt] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const logout = () => { sessionStorage.removeItem("voter_token"); sessionStorage.removeItem("voter_name"); nav("/"); };
 
@@ -27,7 +29,7 @@ export default function Ballot() {
   }, []);
 
   async function submit() {
-    setErr("");
+    setErr(""); setSubmitting(true);
     try {
       let where = {};
       try { where = await getPosition(); }   // fresh position at the moment of voting (recorded with the receipt)
@@ -35,6 +37,7 @@ export default function Ballot() {
       const { data } = await api.post("/vote", { selections: sel, ...where });
       setReceipt(data.receipt_code); setConfirming(false);
     } catch (e) { setErr(errMsg(e)); setConfirming(false); }
+    finally { setSubmitting(false); }
   }
 
   const header = (
@@ -101,8 +104,10 @@ export default function Ballot() {
               <p className="small text-secondary mt-3 mb-0">You cannot change your vote after submitting.</p>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-outline-secondary" onClick={() => setConfirming(false)}>Go back</button>
-              <button className="btn btn-primary" onClick={submit}>Submit vote</button>
+              <button className="btn btn-outline-secondary" disabled={submitting} onClick={() => setConfirming(false)}>Go back</button>
+              <button className="btn btn-primary" disabled={submitting} onClick={submit}>
+                <Spinner busy={submitting} text="Submitting">Submit vote</Spinner>
+              </button>
             </div>
           </div></div>
         </div>
