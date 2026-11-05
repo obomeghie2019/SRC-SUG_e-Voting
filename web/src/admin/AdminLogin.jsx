@@ -29,7 +29,6 @@ export default function AdminLogin() {
         <input className="form-control mb-4" type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} required />
         <button className="btn btn-primary">Sign in</button>
       </form>
-      <div className="text-center mt-3"><Link to="/" className="small text-secondary">Back to voter sign in</Link></div>
     </div>
   );
 }
